@@ -1,0 +1,181 @@
+// ===========================================
+// Trodat Shop - Prisma Schema (PostgreSQL)
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Users ──────────────────────────────────
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String?  @unique
+  phone            String?  @unique
+  password         String?
+  telegramId       String?  @unique @map("telegram_id")
+  telegramUsername String?  @map("telegram_username")
+  role             Role     @default(USER)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  refreshTokens RefreshToken[]
+  cart          Cart?
+  orders        Order[]
+
+  @@map("users")
+}
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  code      String
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("verification_codes")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ── Refresh Tokens ─────────────────────────
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ── Categories ─────────────────────────────
+model Category {
+  id     String @id @default(uuid())
+  slug   String @unique
+  name   String
+  series String
+  icon   String @default("✨")
+
+  stamps Stamp[]
+
+  @@map("categories")
+}
+
+// ── Stamps (Products) ──────────────────────
+model Stamp {
+  id          String   @id @default(uuid())
+  article     String   @unique
+  name        String
+  series      String
+  shape       String   @default("rectangle")
+  size        String
+  colors      String[]
+  imageMain   String?  @map("image_main")
+  imageImpression String? @map("image_impression")
+  imageGallery String[] @map("image_gallery")
+  inkPad      String   @map("ink_pad")
+  inkColors   String[] @map("ink_colors")
+  featureMci  Boolean  @default(false) @map("feature_mci")
+  featureEco  Boolean  @default(false) @map("feature_eco")
+  featurePositioning Boolean @default(false) @map("feature_positioning")
+  price       Int
+  inStock     Boolean  @default(true) @map("in_stock")
+  description String   @default("")
+  maxLines    Int?     @map("max_lines")
+  maxChars    Int?     @map("max_chars")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@map("stamps")
+}
+
+// ── Cart ────────────────────────────────────
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         String  @id @default(uuid())
+  cartId     String  @map("cart_id")
+  stampId    String  @map("stamp_id")
+  quantity   Int     @default(1)
+  color      String
+  inkColor   String  @map("ink_color")
+  customText String? @map("custom_text")
+
+  cart  Cart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  stamp Stamp @relation(fields: [stampId], references: [id])
+
+  @@unique([cartId, stampId, color, inkColor])
+  @@map("cart_items")
+}
+
+// ── Orders ──────────────────────────────────
+model Order {
+  id              String      @id @default(uuid())
+  userId          String      @map("user_id")
+  status          OrderStatus @default(PENDING)
+  total           Int         @default(0)
+  itemsCount      Int         @default(0) @map("items_count")
+  deliveryCity    String?     @map("delivery_city")
+  deliveryStreet  String?     @map("delivery_street")
+  deliveryZip     String?     @map("delivery_zip")
+  paymentMethod   String?     @map("payment_method")
+  trackingNumber  String?     @map("tracking_number")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id         String  @id @default(uuid())
+  orderId    String  @map("order_id")
+  stampId    String  @map("stamp_id")
+  quantity   Int
+  price      Int
+  color      String
+  inkColor   String  @map("ink_color")
+  customText String? @map("custom_text")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stamp Stamp @relation(fields: [stampId], references: [id])
+
+  @@map("order_items")
+}
