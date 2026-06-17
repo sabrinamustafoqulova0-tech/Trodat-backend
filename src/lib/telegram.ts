@@ -2,6 +2,7 @@ import { Telegraf, Context, Markup } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+// @ts-ignore
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
 dotenv.config();
@@ -36,7 +37,7 @@ bot.start((ctx) => {
 // Handle contact sharing
 bot.on(message('contact'), async (ctx) => {
   const contact = ctx.message.contact;
-  if (!contact) return;
+  if (!contact || !contact.user_id) return;
 
   const telegramId = contact.user_id.toString();
   const phoneNumber = contact.phone_number.replace(/\+/g, '');
@@ -107,24 +108,30 @@ export const notifyAdminOrder = async (orderId: string, userData: any, items: an
       },
     });
 
-    if (admins.length === 0) {
-      console.warn('No admins with linked Telegram found.');
+    if (admins.length === 0 && !process.env.TELEGRAM_ADMIN_CHAT_ID) {
+      console.warn('No admins with linked Telegram found and no TELEGRAM_ADMIN_CHAT_ID env variable defined.');
       return;
     }
 
     const itemsList = items.map(item => `- ${item.name} (${item.quantity}x)`).join('\n');
     const messageText = `🔔 *New Order Received!*\n\n` +
-      `📦 *Order ID:* ${orderId}\n` +
-      `👤 *Customer:* ${userData.name}\n` +
-      `📞 *Phone:* [+${userData.phone}](tel:+${userData.phone})\n\n` +
-      `🛍️ *Items:*\n${itemsList}\n\n` +
-      `💰 *Total:* ${total} руб.\n\n` +
-      `Please contact the customer to confirm the order.`;
+      `📦 *заказ ID:* ${orderId}\n` +
+      `👤 *Клиент:* ${userData.name}\n` +
+      `📞 *Телефон:* [+${userData.phone}](tel:+${userData.phone})\n\n` +
+      `🛍️ *Товар:*\n${itemsList}\n\n` +
+      `💰 *Сумма:* ${total} сом\n\n` +
+      `Пожалуйста, свяжитесь с клиентом для подтверждения заказа.`;
 
+    // Notify registered DB admins
     for (const admin of admins) {
       if (admin.telegramId) {
         await bot.telegram.sendMessage(admin.telegramId, messageText, { parse_mode: 'Markdown' });
       }
+    }
+
+    // Notify explicit Telegram chat ID if configured
+    if (process.env.TELEGRAM_ADMIN_CHAT_ID) {
+      await bot.telegram.sendMessage(process.env.TELEGRAM_ADMIN_CHAT_ID, messageText, { parse_mode: 'Markdown' });
     }
   } catch (error) {
     console.error('Error notifying admin:', error);

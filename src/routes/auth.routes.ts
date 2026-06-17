@@ -71,8 +71,33 @@ router.post('/register', validate(registerSchema), asyncHandler(authController.r
  *       401:
  *         description: Invalid email or password
  */
-// POST /api/v1/auth/login
 router.post('/login', validate(loginSchema), asyncHandler(authController.login));
+
+/**
+ * @openapi
+ * /auth/google:
+ *   post:
+ *     summary: Authenticate a user via Google
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [credential]
+ *             properties:
+ *               credential:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Invalid token payload
+ *       401:
+ *         description: Invalid or expired token
+ */
+router.post('/google', asyncHandler(authController.googleLogin));
 
 /**
  * @openapi

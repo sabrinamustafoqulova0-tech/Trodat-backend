@@ -131,7 +131,7 @@ router.get('/', asyncHandler(stampsController.getStamps));
  *         description: Stamp created
  */
 // POST /api/v1/stamps
-router.post('/', asyncHandler(stampsController.createStamp));
+router.post('/', authenticate, requireAdmin, asyncHandler(stampsController.createStamp));
 
 /**
  * @openapi
@@ -158,7 +158,7 @@ router.post('/', asyncHandler(stampsController.createStamp));
  *         description: Stamp updated
  */
 // PUT /api/v1/stamps/:id
-router.put('/:id', asyncHandler(stampsController.updateStamp));
+router.put('/:id', authenticate, requireAdmin, asyncHandler(stampsController.updateStamp));
 
 /**
  * @openapi
@@ -179,6 +179,6 @@ router.put('/:id', asyncHandler(stampsController.updateStamp));
  *         description: Stamp deleted
  */
 // DELETE /api/v1/stamps/:id
-router.delete('/:id', asyncHandler(stampsController.deleteStamp));
+router.delete('/:id', authenticate, requireAdmin, asyncHandler(stampsController.deleteStamp));
 
 export default router;

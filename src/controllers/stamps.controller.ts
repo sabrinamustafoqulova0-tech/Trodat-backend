@@ -61,7 +61,7 @@ export const getStamps = async (req: Request, res: Response) => {
   } = req.query;
 
   const pageNum = Math.max(1, parseInt(page as string, 10));
-  const perPage = Math.max(1, Math.min(50, parseInt(per_page as string, 10)));
+  const perPage = Math.max(1, Math.min(500, parseInt(per_page as string, 10)));
 
   // Build the where clause
   const where: Prisma.StampWhereInput = {};

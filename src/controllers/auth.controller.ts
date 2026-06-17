@@ -14,6 +14,7 @@ import {
 } from '../utils/jwt';
 import type { RegisterInput, LoginInput } from '../validators/auth.validator';
 import { sendVerificationCode } from '../lib/telegram';
+import { verifyGoogleToken } from '../lib/google';
 
 
 /**
@@ -83,6 +84,10 @@ export const login = async (req: Request, res: Response) => {
   }
 
   // Verify password
+  if (!user.password) {
+    throw ApiError.unauthorized('Invalid email or password');
+  }
+
   const isValid = await bcrypt.compare(password, user.password);
   if (!isValid) {
     throw ApiError.unauthorized('Invalid email or password');
@@ -221,7 +226,7 @@ export const getMe = async (req: Request, res: Response) => {
     name: user.name,
     email: user.email,
     phone: user.phone,
-    role: user.role,
+    role: req.user!.role || user.role,
     created_at: user.createdAt.toISOString(),
   });
 };
@@ -298,6 +303,72 @@ export const verifyTelegramCode = async (req: Request, res: Response) => {
     },
   });
 
+  res.json({
+    status: 'success',
+    data: {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        created_at: user.createdAt.toISOString(),
+      },
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    },
+  });
+};
+
+/**
+ * POST /api/v1/auth/google
+ */
+export const googleLogin = async (req: Request, res: Response) => {
+  const { credential } = req.body;
+  if (!credential) {
+    throw ApiError.badRequest('Google credential (idToken) is required');
+  }
+
+  // 1. Verify token and extract profile info
+  const payload = await verifyGoogleToken(credential);
+  const { email, name } = payload;
+
+  if (!email) {
+    throw ApiError.badRequest('Google ID token is missing email');
+  }
+
+  // 2. Find user by email
+  let user = await prisma.user.findUnique({ where: { email } });
+
+  // 3. If user doesn't exist, create them
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: null, // No password for Google authenticated users
+      },
+    });
+
+    // Create empty cart for the new user
+    await prisma.cart.create({ data: { userId: user.id } });
+  }
+
+  // 4. Generate Access & Refresh tokens
+  const tokenPayload = { userId: user.id, role: user.role };
+  const accessToken = generateAccessToken(tokenPayload);
+  const refreshToken = generateRefreshToken(tokenPayload);
+
+  // 5. Store Refresh token in database
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId: user.id,
+      expiresAt: getRefreshTokenExpiryDate(),
+    },
+  });
+
+  // 6. Return response
   res.json({
     status: 'success',
     data: {

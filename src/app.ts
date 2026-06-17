@@ -13,6 +13,7 @@ import stampsRoutes from './routes/stamps.routes';
 import categoriesRoutes from './routes/categories.routes';
 import cartRoutes from './routes/cart.routes';
 import ordersRoutes from './routes/orders.routes';
+import adminRoutes from './routes/admin.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import swaggerUi from 'swagger-ui-express';
@@ -72,6 +73,7 @@ app.use('/api/v1/stamps', stampsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/orders', ordersRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // ── Error Handling ─────────────────────────
 app.use(notFoundHandler);
