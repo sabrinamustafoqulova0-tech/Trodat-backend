@@ -106,6 +106,9 @@ export const getStamps = async (req: Request, res: Response) => {
   // Build the order clause
   let orderBy: Prisma.StampOrderByWithRelationInput = { createdAt: 'desc' };
   switch (sort) {
+    case 'popular':
+      orderBy = { price: 'desc' }; // Most expensive first as proxy for popular
+      break;
     case 'price_asc':
       orderBy = { price: 'asc' };
       break;

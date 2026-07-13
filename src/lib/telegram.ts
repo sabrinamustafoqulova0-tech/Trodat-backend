@@ -115,7 +115,6 @@ export const notifyAdminOrder = async (orderId: string, userData: any, items: an
 
     const itemsList = items.map(item => `- ${item.name} (${item.quantity}x)`).join('\n');
     const messageText = `🔔 *New Order Received!*\n\n` +
-      `📦 *заказ ID:* ${orderId}\n` +
       `👤 *Клиент:* ${userData.name}\n` +
       `📞 *Телефон:* [+${userData.phone}](tel:+${userData.phone})\n\n` +
       `🛍️ *Товар:*\n${itemsList}\n\n` +
